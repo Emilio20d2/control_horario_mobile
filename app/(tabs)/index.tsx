@@ -1,20 +1,45 @@
-import { Image } from "expo-image";
-import { useRouter, Link } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
-import { HelloWave } from "@/components/hello-wave";
-import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getLoginUrl } from "@/constants/oauth";
 import { useAuth } from "@/hooks/use-auth";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 export default function HomeScreen() {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const cardBg = useThemeColor({}, "card");
+  const borderColor = useThemeColor({}, "border");
+  const tintColor = useThemeColor({}, "tint");
+  const successColor = useThemeColor({}, "success");
+  const warningColor = useThemeColor({}, "warning");
+
+  // Datos de ejemplo - en producción vendrían del backend
+  const weekSummary = {
+    worked: 23.5,
+    pending: 16.5,
+    balance: 7,
+  };
+
+  const notifications = [
+    { id: 1, type: "warning", message: "Semana 49 sin confirmar", action: "Confirmar" },
+    { id: 2, type: "info", message: "2 mensajes sin leer", action: "Ver" },
+    { id: 3, type: "success", message: "Vacaciones aprobadas: 23-27 Dic", action: "" },
+  ];
+
+  const quickActions = [
+    { id: 1, title: "Registrar Horas", icon: "⏱️", route: "/schedule" },
+    { id: 2, title: "Mi Horario", icon: "📅", route: "/schedule" },
+    { id: 3, title: "Solicitar Ausencia", icon: "🏖️", route: "/absences" },
+    { id: 4, title: "Ver Balance", icon: "📊", route: "/profile" },
+  ];
 
   useEffect(() => {
     console.log("[HomeScreen] Auth state:", {
@@ -123,156 +148,246 @@ export default function HomeScreen() {
     }
   };
 
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.authContainer}>
-        {loading ? (
-          <ActivityIndicator />
-        ) : isAuthenticated && user ? (
-          <ThemedView style={styles.userInfo}>
-            <ThemedText type="subtitle">Logged in as</ThemedText>
-            <ThemedText type="defaultSemiBold">{user.name || user.email || user.openId}</ThemedText>
-            <Pressable onPress={logout} style={styles.logoutButton}>
-              <ThemedText style={styles.logoutText}>Logout</ThemedText>
+  // Si no está autenticado, mostrar pantalla de login
+  if (!isAuthenticated || !user) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedView style={[styles.loginContainer, {
+          paddingTop: Math.max(insets.top, 40),
+          paddingBottom: Math.max(insets.bottom, 40),
+          paddingLeft: Math.max(insets.left, 24),
+          paddingRight: Math.max(insets.right, 24),
+        }]}>
+          <ThemedText type="title" style={styles.loginTitle}>Control Horario</ThemedText>
+          <ThemedText style={styles.loginSubtitle}>Gestiona tu tiempo de trabajo</ThemedText>
+          
+          {loading ? (
+            <ActivityIndicator size="large" color={tintColor} style={styles.loader} />
+          ) : (
+            <Pressable
+              onPress={handleLogin}
+              disabled={isLoggingIn}
+              style={[styles.loginButton, { backgroundColor: tintColor }, isLoggingIn && styles.loginButtonDisabled]}
+            >
+              {isLoggingIn ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText style={styles.loginButtonText}>Iniciar Sesión</ThemedText>
+              )}
             </Pressable>
-          </ThemedView>
-        ) : (
-          <Pressable
-            onPress={handleLogin}
-            disabled={isLoggingIn}
-            style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]}
-          >
-            {isLoggingIn ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.loginText}>Login</ThemedText>
-            )}
-          </Pressable>
-        )}
+          )}
+        </ThemedView>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert("Action pressed")} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert("Share pressed")}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert("Delete pressed")}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    );
+  }
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  // Dashboard para usuario autenticado
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 20),
+            paddingLeft: Math.max(insets.left, 16),
+            paddingRight: Math.max(insets.right, 16),
+          },
+        ]}
+      >
+        {/* Saludo */}
+        <ThemedView style={styles.greeting}>
+          <ThemedText type="title">¡Hola, {user.name?.split(" ")[0] || "Usuario"}!</ThemedText>
+          <ThemedText style={styles.greetingSubtext}>Bienvenido a tu panel de control</ThemedText>
+        </ThemedView>
+
+        {/* Resumen Semanal */}
+        <ThemedView style={[styles.summaryCard, { backgroundColor: cardBg, borderColor }]}>
+          <ThemedText type="subtitle" style={styles.cardTitle}>Resumen de la Semana</ThemedText>
+          <ThemedView style={styles.summaryGrid}>
+            <ThemedView style={styles.summaryItem}>
+              <ThemedText style={styles.summaryValue}>{weekSummary.worked}h</ThemedText>
+              <ThemedText style={styles.summaryLabel}>Trabajadas</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.summaryItem}>
+              <ThemedText style={styles.summaryValue}>{weekSummary.pending}h</ThemedText>
+              <ThemedText style={styles.summaryLabel}>Pendientes</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.summaryItem}>
+              <ThemedText style={[styles.summaryValue, { color: successColor }]}>+{weekSummary.balance}h</ThemedText>
+              <ThemedText style={styles.summaryLabel}>Balance</ThemedText>
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
+
+        {/* Notificaciones */}
+        <ThemedView style={styles.notificationsSection}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Notificaciones</ThemedText>
+          {notifications.map((notif) => (
+            <ThemedView key={notif.id} style={[styles.notificationCard, { backgroundColor: cardBg, borderColor }]}>
+              <ThemedView style={styles.notificationContent}>
+                <ThemedText style={styles.notificationIcon}>
+                  {notif.type === "warning" ? "⚠️" : notif.type === "success" ? "✅" : "ℹ️"}
+                </ThemedText>
+                <ThemedText style={styles.notificationText}>{notif.message}</ThemedText>
+              </ThemedView>
+              {notif.action && (
+                <ThemedText style={{ color: tintColor, fontWeight: "600" }}>{notif.action}</ThemedText>
+              )}
+            </ThemedView>
+          ))}
+        </ThemedView>
+
+        {/* Accesos Rápidos */}
+        <ThemedView style={styles.quickActionsSection}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Accesos Rápidos</ThemedText>
+          <ThemedView style={styles.quickActionsGrid}>
+            {quickActions.map((action) => (
+              <Pressable
+                key={action.id}
+                style={[styles.quickActionCard, { backgroundColor: cardBg, borderColor }]}
+                onPress={() => router.push(action.route as any)}
+              >
+                <ThemedText style={styles.quickActionIcon}>{action.icon}</ThemedText>
+                <ThemedText style={styles.quickActionTitle}>{action.title}</ThemedText>
+              </Pressable>
+            ))}
+          </ThemedView>
+        </ThemedView>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
+  container: {
+    flex: 1,
+  },
+  loginContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: 24,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  loginTitle: {
+    textAlign: "center",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
+  loginSubtitle: {
+    fontSize: 16,
+    opacity: 0.6,
+    textAlign: "center",
   },
-  authContainer: {
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  userInfo: {
-    gap: 8,
-    alignItems: "center",
+  loader: {
+    marginTop: 32,
   },
   loginButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 44,
+    minHeight: 56,
+    minWidth: 200,
+    marginTop: 32,
   },
   loginButtonDisabled: {
     opacity: 0.6,
   },
-  loginText: {
+  loginButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
   },
-  logoutButton: {
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    backgroundColor: "rgba(255, 59, 48, 0.1)",
+  scrollView: {
+    flex: 1,
   },
-  logoutText: {
-    color: "#FF3B30",
+  scrollContent: {
+    gap: 24,
+  },
+  greeting: {
+    gap: 4,
+  },
+  greetingSubtext: {
     fontSize: 14,
-    fontWeight: "500",
+    opacity: 0.6,
+  },
+  summaryCard: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 16,
+  },
+  cardTitle: {
+    marginBottom: 8,
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  summaryItem: {
+    alignItems: "center",
+    gap: 8,
+  },
+  summaryValue: {
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  summaryLabel: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  notificationsSection: {
+    gap: 12,
+  },
+  sectionTitle: {
+    marginBottom: 4,
+  },
+  notificationCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  notificationContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  notificationIcon: {
+    fontSize: 20,
+  },
+  notificationText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  quickActionsSection: {
+    gap: 12,
+  },
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  quickActionCard: {
+    width: "48%",
+    aspectRatio: 1,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  quickActionIcon: {
+    fontSize: 32,
+  },
+  quickActionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

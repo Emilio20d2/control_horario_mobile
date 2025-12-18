@@ -12,11 +12,11 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: 'Control Horario Mobile',
+  appName: 'Control Horario',
   appSlug: 'control-horario-mobile',
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: '',
+  logoUrl: 'https://s3.us-west-2.amazonaws.com/manus.user.asset/a48e9b81-f1b1-4d0d-a0c5-e6d2f3b4c5a6.png',
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
